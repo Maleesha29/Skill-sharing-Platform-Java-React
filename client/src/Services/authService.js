@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:8080/api';
+import axiosInstance from './axiosConfig';
 
 const getFullImageUrl = (imagePath) => {
     if (!imagePath) return null;
@@ -11,21 +9,23 @@ const getFullImageUrl = (imagePath) => {
 export const authService = {
     login: async (email, password) => {
         try {
-            const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+            const response = await axiosInstance.post('/auth/login', { email, password });
             const userData = response.data;
             if (userData.profilePicture) {
                 userData.profilePicture = getFullImageUrl(userData.profilePicture);
             }
-            localStorage.setItem('user', JSON.stringify(userData));
+            // Store user data without the token
+            const { token, ...userDataWithoutToken } = userData;
+            localStorage.setItem('user', JSON.stringify(userDataWithoutToken));
+            localStorage.setItem('token', token);
             return userData;
         } catch (error) {
-            throw error.response.data;
+            throw error.response?.data || 'Login failed';
         }
     },
 
     register: async (userData) => {
         try {
-            // Create FormData if there's a profile image
             if (userData.profileImage) {
                 const formData = new FormData();
                 Object.keys(userData).forEach(key => {
@@ -36,39 +36,29 @@ export const authService = {
                     }
                 });
                 
-                const response = await axios.post(`${API_URL}/auth/register`, formData, {
+                const response = await axiosInstance.post('/auth/register', formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data'
                     }
                 });
                 return response.data;
             } else {
-                // Regular JSON request if no image
-                const response = await axios.post(`${API_URL}/auth/register`, userData);
+                const response = await axiosInstance.post('/auth/register', userData);
                 return response.data;
             }
         } catch (error) {
-            if (error.response && error.response.data) {
-                throw error.response.data;
-            } else {
-                throw new Error('Registration failed. Please try again.');
-            }
+            throw error.response?.data || 'Registration failed';
         }
     },
 
     logout: async () => {
         try {
-            // Clear local storage
             localStorage.removeItem('user');
             localStorage.removeItem('token');
-            
-            // Call backend logout endpoint if you have one
-            await axios.post('http://localhost:8080/api/auth/logout');
-            
+            await axiosInstance.post('/auth/logout');
             return true;
         } catch (error) {
             console.error('Logout error:', error);
-            // Still clear local storage even if backend call fails
             localStorage.clear();
             return false;
         }
@@ -88,13 +78,13 @@ export const authService = {
                     formData.append(key, userData[key]);
                 });
                 
-                response = await axios.put(`${API_URL}/users/${userId}`, formData, {
+                response = await axiosInstance.put(`/users/${userId}`, formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data'
                     }
                 });
             } else {
-                response = await axios.put(`${API_URL}/users/${userId}`, userData);
+                response = await axiosInstance.put(`/users/${userId}`, userData);
             }
             const updatedUser = response.data;
             if (updatedUser.profilePicture) {
@@ -102,49 +92,42 @@ export const authService = {
             }
             return updatedUser;
         } catch (error) {
-            throw error.response ? error.response.data : error.message;
+            throw error.response?.data || error.message;
         }
     },
 
     updateOAuthProfile: async (formData) => {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/users/profile`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to update profile');
+        try {
+            const response = await axiosInstance.post('/users/profile', formData);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || 'Failed to update profile';
         }
-
-        return await response.json();
     },
 
     deleteProfile: async (userId) => {
         try {
-            await axios.delete(`${API_URL}/users/${userId}`);
+            await axiosInstance.delete(`/users/${userId}`);
             localStorage.removeItem('user');
+            localStorage.removeItem('token');
         } catch (error) {
-            throw error.response.data;
+            throw error.response?.data || 'Failed to delete profile';
         }
     },
 
     followUser: async (userId, followUserId) => {
         try {
-            await axios.post(`${API_URL}/users/${userId}/follow/${followUserId}`);
+            await axiosInstance.post(`/users/${userId}/follow/${followUserId}`);
         } catch (error) {
-            throw error.response.data;
+            throw error.response?.data || 'Failed to follow user';
         }
     },
 
     unfollowUser: async (userId, unfollowUserId) => {
         try {
-            await axios.delete(`${API_URL}/users/${userId}/unfollow/${unfollowUserId}`);
+            await axiosInstance.delete(`/users/${userId}/unfollow/${unfollowUserId}`);
         } catch (error) {
-            throw error.response.data;
+            throw error.response?.data || 'Failed to unfollow user';
         }
     }
 };

@@ -1,11 +1,16 @@
 package Backend.controller;
 
 import Backend.model.User;
+import Backend.security.JwtTokenProvider;
 import Backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,6 +30,12 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private AuthenticationManager authenticationManager;
+    
+    @Autowired
+    private JwtTokenProvider tokenProvider;
     
     private final Path fileStoragePath = Paths.get("Backend/uploads/profile-images").toAbsolutePath().normalize();
 
@@ -111,12 +122,19 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Email and password are required");
         }
         
-        Optional<User> userOptional = userService.getUserByEmail(email);
-        
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            if (userService.verifyPassword(user, password)) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, password)
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = tokenProvider.generateToken(authentication);
+            
+            Optional<User> userOptional = userService.getUserByEmail(email);
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
                 Map<String, Object> response = new HashMap<>();
+                response.put("token", jwt);
                 response.put("id", user.getId());
                 response.put("username", user.getUsername());
                 response.put("email", user.getEmail());
@@ -124,10 +142,11 @@ public class AuthController {
                 response.put("lastName", user.getLastName());
                 response.put("profilePicture", user.getProfilePicture());
                 response.put("bio", user.getBio());
-                // Don't include password in the response
                 
                 return ResponseEntity.ok(response);
             }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
         }
         
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
