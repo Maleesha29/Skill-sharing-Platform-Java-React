@@ -28,7 +28,9 @@ const Login = () => {
         setError(''); // Clear any existing errors
         try {
             setIsSubmitting(true);
-            await authService.login(formData.email, formData.password);
+            const response = await authService.login(formData.email, formData.password);
+            // Store the token
+            localStorage.setItem('token', response.token);
             navigate('/Profile');
         } catch (error) {
             if (typeof error === 'string') {

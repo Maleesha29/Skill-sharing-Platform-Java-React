@@ -8,6 +8,7 @@ const OAuth2RedirectHandler = () => {
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const userDataParam = params.get('userData');
+        const token = params.get('token');
         
         if (userDataParam) {
             try {
@@ -18,6 +19,11 @@ const OAuth2RedirectHandler = () => {
                     ...userData,
                     profileImage: userData.profileImage || "http://www.w3.org/2000/svg"
                 }));
+                
+                // Store token in localStorage if present
+                if (token) {
+                    localStorage.setItem('token', token);
+                }
                 
                 navigate('/Profile');
             } catch (error) {

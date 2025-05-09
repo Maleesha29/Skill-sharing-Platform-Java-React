@@ -19,11 +19,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import Backend.security.JwtTokenProvider;
+import Backend.security.UserPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+
 @Component
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) 
@@ -60,12 +67,17 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         userData.put("profilePicture", user.getProfilePicture());
         userData.put("bio", user.getBio()); 
         
+        // Generate JWT token for the user
+        UserDetails userDetails = UserPrincipal.create(user);
+        String token = jwtTokenProvider.generateToken(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()));
+        
         // Convert userData to JSON
         String userDataJson = new ObjectMapper().writeValueAsString(userData);
         
-        // Redirect to frontend with user data
+        // Redirect to frontend with user data and token
         String redirectUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/oauth2/redirect")
                 .queryParam("userData", userDataJson)
+                .queryParam("token", token)
                 .build().toUriString();
         
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
