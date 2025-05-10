@@ -94,9 +94,9 @@ const Profile = () => {
                                 >
                                     <FaSignOutAlt />
                                 </button>
-                                <button 
-                                    onClick={handleDelete} 
-                                    className="Profile-delete-button"
+<button 
+                                    onClick={handleLogout} 
+                                    className="Profile-logout-button"
                                 >
                                     <FaTrash />
                                 </button>
