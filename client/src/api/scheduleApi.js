@@ -1,8 +1,5 @@
 
-/**
- * Fetches all sessions
- * @returns {Promise<Array>} - Array of session objects
- */
+
 export const getSessions = () => {
   return new Promise((resolve) => {
     try {
@@ -15,11 +12,7 @@ export const getSessions = () => {
   });
 };
 
-/**
- * Fetches a specific session by ID
- * @param {string} sessionId - ID of the session to fetch
- * @returns {Promise<Object|null>} - Session object or null if not found
- */
+
 export const getSessionById = (sessionId) => {
   return new Promise((resolve) => {
     try {
