@@ -1,4 +1,3 @@
-// src/components/JitsiMeetComponent.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import jitsiService from '../Services/jitsiService';
 import '../css/jitsi.css';
@@ -15,19 +14,19 @@ const JitsiMeetComponent = ({
   const [api, setApi] = useState(null);
 
   useEffect(() => {
-    // Initialize Jitsi when component mounts
+    
     let isMounted = true;
     
     const initializeJitsi = async () => {
       try {
         setLoading(true);
         
-        // Ensure the container element exists
+        
         if (!jitsiContainerRef.current) {
           throw new Error('Jitsi container not found');
         }
 
-        // Use the jitsiService to initialize
+        
         const jitsiApi = await jitsiService.initJitsiMeet({
           roomName: roomName || 'LiveSkillSession',
           parentNode: jitsiContainerRef.current,
@@ -36,13 +35,13 @@ const JitsiMeetComponent = ({
           }
         });
 
-        // Store the API reference and notify parent
+        
         if (isMounted) {
           setApi(jitsiApi);
           setLoading(false);
           onApiReady(jitsiApi);
           
-          // Add custom event listeners
+          
           jitsiApi.addListener('readyToClose', () => {
             if (isMounted) {
               onMeetingEnd();
@@ -60,7 +59,7 @@ const JitsiMeetComponent = ({
 
     initializeJitsi();
 
-    // Cleanup function
+    
     return () => {
       isMounted = false;
       if (api) {
@@ -70,7 +69,7 @@ const JitsiMeetComponent = ({
     };
   }, [roomName, displayName, onApiReady, onMeetingEnd]);
 
-  // Handle errors
+  
   if (error) {
     return (
       <div className="jitsi-error-container">
